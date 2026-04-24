@@ -1,0 +1,45 @@
+<resources>
+    <string name="app_name" translatable="false">MinCal</string>
+    <string name="app_name_launcher" translatable="false">MinCal</string>
+
+    <!-- region About -->
+    <string name="done">Done</string>
+    <string name="about">About</string>
+    <string name="app_description"><![CDATA[<a href=\"https://github.com/BURG3R5/MinCal\">MinCal</a> is a minimal client for Google Calendar.]]></string>
+    <string name="license">License</string>
+    <string name="source_code">Source code</string>
+    <string name="project_wiki">Project wiki</string>
+    <string name="dependencies">Dependencies</string>
+    <!-- endregion -->
+
+    <!-- region Home -->
+    <string name="permissions_required">Permissions required:</string>
+    <string name="client_id">Google OAuth Client ID</string>
+    <string name="client_secret">Google OAuth Client Secret</string>
+    <string name="client_creds_supporting"><![CDATA[Visit <a href=\"https://github.com/BURG3R5/MinCal/wiki/Instructions\">the project wiki</a> for instructions.]]></string>
+    <string name="authorize">Authorize</string>
+    <string name="auth_code">Authorization Code</string>
+    <string name="no_calendars">No calendars found</string>
+    <string name="select_calendars">Select calendars to use:</string>
+    <string name="primary">Primary [%1$s]</string>
+    <string name="no_events">No events found</string>
+    <string name="cannot_fetch_tokens">"Couldn't fetch auth tokens. Please check the credentials and try again."</string>
+    <string name="cannot_fetch_calendars">"Couldn't fetch your calendars. Please check the scopes and try again."</string>
+    <string name="cannot_fetch_events">"Couldn't fetch your events. Please check the scopes and try again."</string>
+    <!-- region AppBar -->
+    <string name="app_logo">"The app's logo"</string>
+    <!-- endregion -->
+    <!-- region Permissions -->
+    <string name="post_notifications">Post notifications</string>
+    <string name="schedule_exact_alarms">Schedule exact alarms</string>
+    <!-- endregion -->
+    <!-- region Form -->
+    <string name="back">Back</string>
+    <string name="next">Next</string>
+    <!-- endregion -->
+    <!-- endregion -->
+
+    <!-- region Licenses -->
+    <string name="licenses">Licenses</string>
+    <!-- endregion -->
+</resources>
