@@ -18,7 +18,7 @@ import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
-class Worker(private val context: Context, params: WorkerParameters) :
+class AlarmSetter(private val context: Context, params: WorkerParameters) :
     CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         Storage.init(context)
@@ -85,15 +85,26 @@ class Worker(private val context: Context, params: WorkerParameters) :
     }
 
     companion object {
-        private const val TAG = "Worker"
+        private const val TAG = "AlarmSetter"
+    }
+}
+
+class TokenRefresher(private val context: Context, params: WorkerParameters) :
+    CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        Storage.init(context)
+
+        Calendar.refreshTokens()
+
+        return Result.success()
     }
 }
 
 fun Context.scheduleWork() {
     WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-        WORKER_NAME,
+        ALARM_SETTER,
         ExistingPeriodicWorkPolicy.UPDATE,
-        PeriodicWorkRequestBuilder<Worker>(
+        PeriodicWorkRequestBuilder<AlarmSetter>(
             // INFO: While debugging, use a shorter interval
             if (BuildConfig.DEBUG) 15 else 60,
             TimeUnit.MINUTES,
@@ -101,6 +112,18 @@ fun Context.scheduleWork() {
             Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build(),
         ).build(),
     )
+
+    WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+        TOKEN_REFRESHER,
+        ExistingPeriodicWorkPolicy.UPDATE,
+        PeriodicWorkRequestBuilder<TokenRefresher>(
+            1,
+            TimeUnit.DAYS,
+        ).setConstraints(
+            Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build(),
+        ).build(),
+    )
 }
 
-const val WORKER_NAME = "mincal_worker"
+const val ALARM_SETTER = "mincal_worker"
+const val TOKEN_REFRESHER = "mincal_token_refresher"

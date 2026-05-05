@@ -74,7 +74,7 @@ object Calendar {
         }
     }
 
-    private suspend fun refreshTokens() {
+    suspend fun refreshTokens() {
         withContext(Dispatchers.IO) {
             try {
                 val authTokens = Storage.getTokens()!!
