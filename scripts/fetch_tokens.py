@@ -23,10 +23,10 @@ def main():
     )
 
     token_data = {
-        "access_token": credentials.token,
-        "refresh_token": credentials.refresh_token,
-        "client_id": credentials.client_id,
-        "client_secret": credentials.client_secret,
+        "accessToken": credentials.token,
+        "refreshToken": credentials.refresh_token,
+        "clientId": credentials.client_id,
+        "clientSecret": credentials.client_secret,
     }
 
     with open("credentials.json", "w") as f:

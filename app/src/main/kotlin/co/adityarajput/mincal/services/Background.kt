@@ -29,7 +29,7 @@ class AlarmSetter(private val context: Context, params: WorkerParameters) :
 
         val events = mutableListOf<EventInfo>()
         try {
-            for (calendar in Storage.getCalenders() ?: return Result.failure()) {
+            for (calendar in Storage.calenders) {
                 val calendarEvents = Calendar.getEvents(calendar.id) ?: continue
 
                 events += calendarEvents.map {

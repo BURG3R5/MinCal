@@ -14,7 +14,12 @@ import java.time.ZonedDateTime
 typealias Component = @Composable () -> Unit
 typealias ChildOfColumn = @Composable (ColumnScope.() -> Unit)
 
-data class AuthTokens(val accessToken: String, val refreshToken: String, val validTill: Long)
+@Serializable
+data class Credentials(
+    val clientId: String, val clientSecret: String,
+    val accessToken: String, val refreshToken: String,
+    val validTill: Long = 0,
+)
 
 @Serializable
 @JsonIgnoreUnknownKeys

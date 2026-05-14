@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
 import androidx.core.content.edit
-import co.adityarajput.mincal.data.AuthTokens
 import co.adityarajput.mincal.data.CalendarInfo
+import co.adityarajput.mincal.data.Credentials
 import com.google.crypto.tink.Aead
 import com.google.crypto.tink.RegistryConfiguration
 import com.google.crypto.tink.aead.AeadConfig
@@ -33,48 +33,33 @@ object Storage {
             .getPrimitive(RegistryConfiguration.get(), Aead::class.java)
     }
 
-    fun areCredsStored() =
-        listOf(CLIENT_ID, CLIENT_SECRET, ACCESS_TOKEN, REFRESH_TOKEN, VALID_TILL)
+    val areCredsStored
+        get() = listOf(CLIENT_ID, CLIENT_SECRET, ACCESS_TOKEN, REFRESH_TOKEN, VALID_TILL)
             .all { sharedPreferences.contains(it) }
 
-    fun saveCredentials(tokens: AuthTokens) {
-        sharedPreferences.edit {
-            putString(CLIENT_ID, Calendar.clientId)
-            putString(CLIENT_SECRET, encrypt(Calendar.clientSecret))
-            putString(ACCESS_TOKEN, encrypt(tokens.accessToken))
-            putString(REFRESH_TOKEN, encrypt(tokens.refreshToken))
-            putLong(VALID_TILL, tokens.validTill)
-        }
-    }
-
-    fun getClientId() = sharedPreferences.getString(CLIENT_ID, null)
-
-    fun getClientSecret(): String? {
-        return decrypt(sharedPreferences.getString(CLIENT_SECRET, null) ?: return null)
-    }
-
-    fun getTokens(): AuthTokens? {
-        return AuthTokens(
-            decrypt(sharedPreferences.getString(ACCESS_TOKEN, null) ?: return null),
-            decrypt(sharedPreferences.getString(REFRESH_TOKEN, null) ?: return null),
-            sharedPreferences.getLong(VALID_TILL, 0L).takeIf { it != 0L } ?: return null,
+    var credentials: Credentials
+        get() = Credentials(
+            sharedPreferences.getString(CLIENT_ID, null)!!,
+            decrypt(sharedPreferences.getString(CLIENT_SECRET, null)!!),
+            decrypt(sharedPreferences.getString(ACCESS_TOKEN, null)!!),
+            decrypt(sharedPreferences.getString(REFRESH_TOKEN, null)!!),
+            sharedPreferences.getLong(VALID_TILL, 0L),
         )
-    }
-
-    fun areCalendarsStored() = sharedPreferences.contains(CALENDARS)
-
-    fun saveCalendars(calendars: Set<CalendarInfo>) {
-        sharedPreferences.edit {
-            putString(CALENDARS, Json.encodeToString(calendars))
+        set(value) = sharedPreferences.edit {
+            putString(CLIENT_ID, value.clientId)
+            putString(CLIENT_SECRET, encrypt(value.clientSecret))
+            putString(ACCESS_TOKEN, encrypt(value.accessToken))
+            putString(REFRESH_TOKEN, encrypt(value.refreshToken))
+            putLong(VALID_TILL, value.validTill)
         }
-    }
 
-    fun getCalenders(): Set<CalendarInfo>? {
-        return Json.decodeFromString(
-            sharedPreferences.getString(CALENDARS, null)
-                ?: return null,
-        )
-    }
+    val areCalendarsStored get() = sharedPreferences.contains(CALENDARS)
+
+    var calenders: Set<CalendarInfo>
+        get() = Json.decodeFromString(sharedPreferences.getString(CALENDARS, null)!!)
+        set(value) = sharedPreferences.edit {
+            putString(CALENDARS, Json.encodeToString(value))
+        }
 
     private fun encrypt(text: String) =
         Base64.encodeToString(
