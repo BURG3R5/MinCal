@@ -22,26 +22,27 @@ class HomeViewModel(context: Context) :
     var events by mutableStateOf<List<EventInfo>?>(null)
 
     init {
-        if (!Storage.areCredsStored) {
+        if (!context.hasPermissions().all { it.value }) {
+            page = HomeFormPage.PERMISSIONS
+        } else if (!Storage.areCredsStored) {
             page = HomeFormPage.CREDENTIALS
         } else if (!Storage.areCalendarsStored) {
+            page = HomeFormPage.CALENDARS
             viewModelScope.launch {
-                page = HomeFormPage.CALENDARS
                 fetchCalendars()
             }
-        } else if (!context.hasPermissions().all { it.value }) {
-            page = HomeFormPage.PERMISSIONS
         } else {
+            page = HomeFormPage.EVENTS
             viewModelScope.launch {
-                page = HomeFormPage.EVENTS
                 fetchEvents()
             }
         }
     }
 
-    fun readCredentialsJson(json: String) {
+    suspend fun readCredentialsJson(json: String) {
         try {
             Storage.credentials = Json.decodeFromString<Credentials>(json)
+            Calendar.refreshTokens()
             nextPage()
         } catch (_: Exception) {
             error = HomeFormError.CANNOT_READ_CREDENTIALS
@@ -90,7 +91,7 @@ class HomeViewModel(context: Context) :
 }
 
 enum class HomeFormPage {
-    CREDENTIALS, CALENDARS, PERMISSIONS, EVENTS;
+    PERMISSIONS, CREDENTIALS, CALENDARS, EVENTS;
 }
 
 enum class HomeFormError(override val message: Int) : FormError {

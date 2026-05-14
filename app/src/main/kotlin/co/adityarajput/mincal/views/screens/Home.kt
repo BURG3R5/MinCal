@@ -86,37 +86,22 @@ fun HomeScreen(
         MultiPageForm(
             viewmodel,
             {
-                when (it) {
-                    HomeFormPage.CREDENTIALS -> {
-                        coroutineScope.launch {
+                coroutineScope.launch {
+                    when (it) {
+                        HomeFormPage.PERMISSIONS -> viewmodel.nextPage()
+
+                        HomeFormPage.CREDENTIALS -> {
                             viewmodel.fetchCalendars()
                             viewmodel.nextPage()
                         }
-                    }
 
-                    HomeFormPage.CALENDARS -> {
-                        coroutineScope.launch {
+                        HomeFormPage.CALENDARS -> {
                             Storage.calenders = selectedCalendars
-                            if (hasPermissions.all { p -> p.value }) {
-                                coroutineScope.launch {
-                                    // INFO: Skip `HomeFormPage.PERMISSIONS`
-                                    viewmodel.fetchEvents()
-                                    viewmodel.nextPage()
-                                }
-                            }
-                            viewmodel.nextPage()
-                        }
-                    }
-
-                    HomeFormPage.PERMISSIONS -> {
-                        coroutineScope.launch {
                             viewmodel.fetchEvents()
                             viewmodel.nextPage()
                         }
-                    }
 
-                    HomeFormPage.EVENTS -> {
-                        coroutineScope.launch {
+                        HomeFormPage.EVENTS -> {
                             context.scheduleWork()
                             (context as? Activity)?.finish()
                         }
@@ -124,42 +109,50 @@ fun HomeScreen(
                 }
             },
             {
-                when (it) {
-                    HomeFormPage.CREDENTIALS -> {}
+                coroutineScope.launch {
+                    when (it) {
+                        HomeFormPage.PERMISSIONS -> {}
 
-                    HomeFormPage.CALENDARS ->
-                        viewmodel.previousPage()
+                        HomeFormPage.CREDENTIALS -> viewmodel.previousPage()
 
-                    HomeFormPage.PERMISSIONS -> {
-                        coroutineScope.launch {
+                        HomeFormPage.CALENDARS -> viewmodel.previousPage()
+
+                        HomeFormPage.EVENTS -> {
                             viewmodel.fetchCalendars()
                             viewmodel.previousPage()
                         }
                     }
-
-                    HomeFormPage.EVENTS -> {
-                        if (hasPermissions.all { p -> p.value }) {
-                            coroutineScope.launch {
-                                // INFO: Skip `HomeFormPage.PERMISSIONS`
-                                viewmodel.fetchCalendars()
-                                viewmodel.previousPage()
-                            }
-                        }
-                        viewmodel.previousPage()
-                    }
                 }
             },
             when (viewmodel.page) {
+                HomeFormPage.PERMISSIONS -> hasPermissions.all { it.value }
+
                 HomeFormPage.CREDENTIALS -> !viewmodel.calendars.isNullOrEmpty()
 
                 HomeFormPage.CALENDARS -> selectedCalendars.isNotEmpty()
-
-                HomeFormPage.PERMISSIONS -> hasPermissions.all { it.value }
 
                 HomeFormPage.EVENTS -> true
             },
         ) { page ->
             when (page) {
+                HomeFormPage.PERMISSIONS -> {
+                    Text(
+                        R.string.permissions_required.str,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Permission.entries.forEach { permission ->
+                        Checkbox(
+                            hasPermissions.getValue(permission),
+                            { context.request(permission) },
+                            permission.text.str,
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = R.dimen.padding_small.dim),
+                            !hasPermissions.getValue(permission),
+                        )
+                    }
+                }
+
                 HomeFormPage.CREDENTIALS -> {
                     Button(
                         R.string.select_credentials_json.str,
@@ -197,24 +190,6 @@ fun HomeScreen(
                             Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = R.dimen.padding_small.dim),
-                        )
-                    }
-                }
-
-                HomeFormPage.PERMISSIONS -> {
-                    Text(
-                        R.string.permissions_required.str,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Permission.entries.forEach { permission ->
-                        Checkbox(
-                            hasPermissions.getValue(permission),
-                            { context.request(permission) },
-                            permission.text.str,
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = R.dimen.padding_small.dim),
-                            !hasPermissions.getValue(permission),
                         )
                     }
                 }
