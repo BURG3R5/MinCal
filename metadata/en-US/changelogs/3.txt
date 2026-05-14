@@ -1,0 +1,1 @@
+feat: Accept credentials instead of handling OAuth flow
