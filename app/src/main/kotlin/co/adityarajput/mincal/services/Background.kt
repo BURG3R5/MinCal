@@ -32,7 +32,7 @@ class AlarmSetter(private val context: Context, params: WorkerParameters) :
             for (calendar in Storage.calenders) {
                 val calendarEvents = Calendar.getEvents(calendar.id) ?: continue
 
-                events += calendarEvents.map {
+                events += calendarEvents.filter { it.hasAccepted }.map {
                     it.copy(
                         calendar = calendar,
                         defaultReminders = calendar.defaultReminders,
