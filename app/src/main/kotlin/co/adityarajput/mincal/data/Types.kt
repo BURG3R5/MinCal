@@ -39,7 +39,7 @@ data class EventInfo(
     val start: Time,
     @SerialName("reminders") private val eventReminders: Reminders? = null,
     @Transient private val defaultReminders: List<Override>? = null,
-    private val attendees: List<Attendee>,
+    private val attendees: List<Attendee> = listOf(),
 ) {
     val reminders
         get() = eventReminders?.overrides?.map { it.minutes }
