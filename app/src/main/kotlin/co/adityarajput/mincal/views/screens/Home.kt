@@ -203,7 +203,7 @@ fun HomeScreen(
                             .align(Alignment.CenterHorizontally)
                             .heightIn(max = 300.dp),
                     ) { event ->
-                        Card(Modifier.fillMaxWidth()) {
+                        Card({}, Modifier.fillMaxWidth(), event.hasAccepted) {
                             Column(Modifier.padding(R.dimen.padding_small.dim)) {
                                 Text(
                                     event.summary,

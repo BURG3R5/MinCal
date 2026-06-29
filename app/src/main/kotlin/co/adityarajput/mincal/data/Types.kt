@@ -39,11 +39,17 @@ data class EventInfo(
     val start: Time,
     @SerialName("reminders") private val eventReminders: Reminders? = null,
     @Transient private val defaultReminders: List<Override>? = null,
+    private val attendees: List<Attendee>,
 ) {
-    val reminders: List<Int>
+    val reminders
         get() = eventReminders?.overrides?.map { it.minutes }
             ?: defaultReminders?.map { it.minutes }
             ?: emptyList()
+
+    val hasAccepted
+        get() = attendees.any {
+            it.self && listOf("accepted", "tentative").contains(it.responseStatus)
+        }
 
     override fun toString() =
         "EventInfo(id=$id, calendar=${calendar?.summary}, summary=$summary, start=${start.datetime})"
@@ -59,6 +65,13 @@ data class Reminders(
 @Serializable
 @JsonIgnoreUnknownKeys
 data class Override(val minutes: Int)
+
+@Serializable
+@JsonIgnoreUnknownKeys
+data class Attendee(
+    val self: Boolean = false,
+    val responseStatus: String = "needsAction",
+)
 
 @Serializable
 @JsonIgnoreUnknownKeys
