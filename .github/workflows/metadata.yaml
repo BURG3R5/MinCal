@@ -6,7 +6,7 @@ on:
     branches: [ master ]
 
 concurrency:
-  group: "nightly"
+  group: "metadata"
   cancel-in-progress: true
 
 permissions:
