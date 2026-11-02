@@ -28,7 +28,6 @@ fun LicensesScreen(goBack: () -> Unit = {}) {
         LibrariesContainer(
             libraries,
             Modifier.weight(1f),
-            showDescription = true,
             colors = LibraryDefaults.libraryColors(
                 Color.Transparent,
                 dialogBackgroundColor = MaterialTheme.colorScheme.surfaceContainer,
