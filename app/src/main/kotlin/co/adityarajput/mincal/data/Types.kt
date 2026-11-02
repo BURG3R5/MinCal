@@ -22,6 +22,15 @@ data class Credentials(
 )
 
 @Serializable
+data class Account(
+    val id: String,
+    val credentials: Credentials,
+    val calendars: Set<CalendarInfo> = emptySet(),
+) {
+    val label get() = calendars.find { it.primary == true }?.summary
+}
+
+@Serializable
 @JsonIgnoreUnknownKeys
 data class CalendarInfo(
     val id: String,
@@ -34,6 +43,7 @@ data class CalendarInfo(
 @JsonIgnoreUnknownKeys
 data class EventInfo(
     val id: String,
+    @Transient val accountId: String? = null,
     @Transient val calendar: CalendarInfo? = null,
     val summary: String,
     val start: Time,
@@ -52,7 +62,10 @@ data class EventInfo(
         }
 
     override fun toString() =
-        "EventInfo(id=$id, calendar=${calendar?.summary}, summary=$summary, start=${start.datetime})"
+        "EventInfo(accountId=$accountId, id=$id, calendar=${calendar?.summary}, summary=$summary, start=${start.datetime})"
+
+    fun notificationKey(minutesBefore: Int) =
+        "${accountId ?: "no-account"}|${calendar?.id ?: "no-calendar"}|$id|${start.datetime}|$minutesBefore"
 }
 
 @Serializable

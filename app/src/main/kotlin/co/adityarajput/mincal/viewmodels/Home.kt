@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import co.adityarajput.mincal.R
+import co.adityarajput.mincal.data.Account
 import co.adityarajput.mincal.data.CalendarInfo
 import co.adityarajput.mincal.data.Credentials
 import co.adityarajput.mincal.data.EventInfo
@@ -17,16 +18,23 @@ import kotlinx.serialization.json.Json
 
 class HomeViewModel(context: Context) :
     FormViewModel<HomeFormPage, HomeFormError>(HomeFormPage.entries) {
+    var accounts by mutableStateOf<List<Account>>(emptyList())
+
     var calendars by mutableStateOf<List<CalendarInfo>?>(null)
 
     var events by mutableStateOf<List<EventInfo>?>(null)
 
+    var pendingAccountId by mutableStateOf<String?>(null)
+
     init {
+        accounts = Storage.accounts
+
         if (!context.hasPermissions().all { it.value }) {
             page = HomeFormPage.PERMISSIONS
         } else if (!Storage.areCredsStored) {
             page = HomeFormPage.CREDENTIALS
         } else if (!Storage.areCalendarsStored) {
+            pendingAccountId = accounts.firstOrNull()?.id
             page = HomeFormPage.CALENDARS
             viewModelScope.launch {
                 fetchCalendars()
@@ -41,18 +49,67 @@ class HomeViewModel(context: Context) :
 
     suspend fun readCredentialsJson(json: String) {
         try {
-            Storage.credentials = Json.decodeFromString<Credentials>(json)
-            Calendar.refreshTokens()
-            nextPage()
+            val credentials = Json.decodeFromString<Credentials>(json)
+            val account = Storage.addAccount(credentials)
+            pendingAccountId = account.id
+            accounts = Storage.accounts
+            fetchCalendars()
+            page = HomeFormPage.CALENDARS
+            error = null
         } catch (_: Exception) {
             error = HomeFormError.CANNOT_READ_CREDENTIALS
         }
     }
 
+    fun initiateAccountSetup() {
+        calendars = null
+        error = null
+        page = HomeFormPage.CREDENTIALS
+    }
+
+    fun cancelAccountSetup() {
+        if (accounts.isEmpty()) {
+            previousPage()
+            return
+        }
+
+        pendingAccountId = null
+        page = HomeFormPage.EVENTS
+    }
+
+    fun saveSelectedCalendars(calendars: Set<CalendarInfo>) {
+        pendingAccountId?.let { Storage.updateAccountCalendars(it, calendars) }
+        accounts = Storage.accounts
+    }
+
+    suspend fun removeAccount(accountId: String) {
+        Storage.removeAccount(accountId)
+        accounts = Storage.accounts
+
+        if (accounts.isEmpty()) {
+            events = emptyList()
+            page = HomeFormPage.CREDENTIALS
+            return
+        }
+
+        fetchEvents()
+    }
+
     suspend fun fetchCalendars() {
         isLoading = true
 
-        calendars = Calendar.getCalendars()
+        val accountId = pendingAccountId ?: accounts.firstOrNull { it.calendars.isEmpty() }?.id
+        val account = accountId?.let(Storage::getAccount)
+
+        if (account == null) {
+            calendars = emptyList()
+            isLoading = false
+            return
+        }
+
+        pendingAccountId = account.id
+
+        calendars = Calendar.getCalendars(account)
 
         if (calendars == null) {
             error = HomeFormError.CANNOT_FETCH_CALENDARS
@@ -68,19 +125,22 @@ class HomeViewModel(context: Context) :
 
         val fetchedEvents = mutableListOf<EventInfo>()
 
-        for (calendar in Storage.calenders) {
-            val calendarEvents = Calendar.getEvents(calendar.id)
+        for (account in Storage.accounts) {
+            for (calendar in account.calendars) {
+                val calendarEvents = Calendar.getEvents(account, calendar.id)
 
-            if (calendarEvents == null) {
-                error = HomeFormError.CANNOT_FETCH_EVENTS
-                continue
-            }
+                if (calendarEvents == null) {
+                    error = HomeFormError.CANNOT_FETCH_EVENTS
+                    continue
+                }
 
-            fetchedEvents += calendarEvents.map {
-                it.copy(
-                    calendar = calendar,
-                    defaultReminders = calendar.defaultReminders,
-                )
+                fetchedEvents += calendarEvents.map {
+                    it.copy(
+                        accountId = account.id,
+                        calendar = calendar,
+                        defaultReminders = calendar.defaultReminders,
+                    )
+                }
             }
         }
 
