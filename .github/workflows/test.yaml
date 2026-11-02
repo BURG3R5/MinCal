@@ -1,19 +1,23 @@
-name: run tests
+name: test
 
 on:
   push:
     branches:
       - dev
 
+concurrency:
+  group: "test"
+  cancel-in-progress: true
+
 jobs:
-  run-tests:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: 17
           distribution: "temurin"
