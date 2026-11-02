@@ -29,14 +29,17 @@ class AlarmSetter(private val context: Context, params: WorkerParameters) :
 
         val events = mutableListOf<EventInfo>()
         try {
-            for (calendar in Storage.calenders) {
-                val calendarEvents = Calendar.getEvents(calendar.id) ?: continue
+            for (account in Storage.accounts) {
+                for (calendar in account.calendars) {
+                    val calendarEvents = Calendar.getEvents(account, calendar.id) ?: continue
 
-                events += calendarEvents.filter { it.hasAccepted }.map {
-                    it.copy(
-                        calendar = calendar,
-                        defaultReminders = calendar.defaultReminders,
-                    )
+                    events += calendarEvents.filter { it.hasAccepted }.map {
+                        it.copy(
+                            accountId = account.id,
+                            calendar = calendar,
+                            defaultReminders = calendar.defaultReminders,
+                        )
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -45,7 +48,7 @@ class AlarmSetter(private val context: Context, params: WorkerParameters) :
         }
 
         try {
-            for (event in events) {
+            for (event in events.sortedBy { it.start.datetime }) {
                 Log.d(TAG, "Processing $event")
                 val timeToEvent = Duration.between(ZonedDateTime.now(), event.start.datetime)
 
@@ -55,16 +58,17 @@ class AlarmSetter(private val context: Context, params: WorkerParameters) :
                         continue
 
                     Log.d(TAG, "Setting exact alarm in ${delay.toMillis()}ms")
+                    val notificationKey = event.notificationKey(minutesBefore)
                     alarmManager.setExactAndAllowWhileIdle(
                         AlarmManager.ELAPSED_REALTIME,
                         SystemClock.elapsedRealtime() + delay.toMillis(),
                         PendingIntent.getBroadcast(
-                            context, (event to minutesBefore).hashCode(),
+                            context,
+                            notificationKey.hashCode(),
                             Intent(context, Receiver::class.java).apply {
-                                data =
-                                    "mincal://notify/${event.hashCode()}/${event.start.datetime}/$minutesBefore".toUri()
+                                data = "mincal://notify/$notificationKey".toUri()
                                 action = Constants.ACTION_NOTIFY
-                                putExtra(Constants.EVENT_HASH_KEY, event.hashCode())
+                                putExtra(Constants.EVENT_HASH_KEY, notificationKey.hashCode())
                                 putExtra(Constants.EVENT_SUMMARY_KEY, event.summary)
                                 putExtra(
                                     Constants.EVENT_START_KEY,
@@ -93,9 +97,7 @@ class TokenRefresher(private val context: Context, params: WorkerParameters) :
     CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         Storage.init(context)
-
-        Calendar.refreshTokens()
-
+        Storage.accounts.forEach { Calendar.refreshTokens(it) }
         return Result.success()
     }
 }

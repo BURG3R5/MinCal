@@ -7,6 +7,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -14,18 +15,20 @@ fun Button(
     text: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    color: Color = MaterialTheme.colorScheme.primary,
+    maxLines: Int = Int.MAX_VALUE,
     onClick: () -> Unit,
 ) {
     OutlinedButton(
         onClick,
         modifier,
         enabled,
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = color),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.primary.let {
+            color.let {
                 if (enabled) it else it.copy(alpha = 0.1f)
             },
         ),
-    ) { Text(text) }
+    ) { Text(text, maxLines = maxLines, softWrap = maxLines == Int.MAX_VALUE) }
 }

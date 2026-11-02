@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "co.adityarajput.mincal"
-    compileSdk = 36
+    compileSdk = 37
     buildFeatures {
         compose = true
         resValues = true
@@ -19,9 +19,9 @@ android {
     defaultConfig {
         applicationId = "co.adityarajput.mincal"
         minSdk = 29
-        targetSdk = 36
-        versionCode = 4
-        versionName = "1.2.0"
+        targetSdk = 37
+        versionCode = 5
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -86,7 +86,6 @@ dependencies {
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 
     debugImplementation(libs.androidx.compose.ui.tooling)

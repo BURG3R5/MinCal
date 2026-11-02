@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
 import androidx.core.content.edit
+import co.adityarajput.mincal.data.Account
 import co.adityarajput.mincal.data.CalendarInfo
 import co.adityarajput.mincal.data.Credentials
 import com.google.crypto.tink.Aead
@@ -14,6 +15,7 @@ import com.google.crypto.tink.config.TinkConfig
 import com.google.crypto.tink.integration.android.AndroidKeysetManager
 import kotlinx.serialization.json.Json
 import java.nio.charset.StandardCharsets
+import java.util.UUID
 
 object Storage {
     lateinit var sharedPreferences: SharedPreferences
@@ -33,33 +35,43 @@ object Storage {
             .getPrimitive(RegistryConfiguration.get(), Aead::class.java)
     }
 
-    val areCredsStored
-        get() = listOf(CLIENT_ID, CLIENT_SECRET, ACCESS_TOKEN, REFRESH_TOKEN, VALID_TILL)
-            .all { sharedPreferences.contains(it) }
+    val areCredsStored get() = accounts.isNotEmpty()
 
-    var credentials: Credentials
-        get() = Credentials(
-            sharedPreferences.getString(CLIENT_ID, null)!!,
-            decrypt(sharedPreferences.getString(CLIENT_SECRET, null)!!),
-            decrypt(sharedPreferences.getString(ACCESS_TOKEN, null)!!),
-            decrypt(sharedPreferences.getString(REFRESH_TOKEN, null)!!),
-            sharedPreferences.getLong(VALID_TILL, 0L),
-        )
+    val areCalendarsStored get() = accounts.any { it.calendars.isNotEmpty() }
+
+    var accounts: List<Account>
+        get() = sharedPreferences.getString(ACCOUNTS, null)
+            ?.let { decrypt(it) }
+            ?.let { Json.decodeFromString(it) }
+            ?: emptyList()
         set(value) = sharedPreferences.edit {
-            putString(CLIENT_ID, value.clientId)
-            putString(CLIENT_SECRET, encrypt(value.clientSecret))
-            putString(ACCESS_TOKEN, encrypt(value.accessToken))
-            putString(REFRESH_TOKEN, encrypt(value.refreshToken))
-            putLong(VALID_TILL, value.validTill)
+            putString(ACCOUNTS, encrypt(Json.encodeToString(value)))
         }
 
-    val areCalendarsStored get() = sharedPreferences.contains(CALENDARS)
+    fun addAccount(credentials: Credentials) =
+        Account(UUID.randomUUID().toString(), credentials).also { upsertAccount(it) }
 
-    var calenders: Set<CalendarInfo>
-        get() = Json.decodeFromString(sharedPreferences.getString(CALENDARS, null)!!)
-        set(value) = sharedPreferences.edit {
-            putString(CALENDARS, Json.encodeToString(value))
+    fun getAccount(accountId: String) =
+        accounts.find { it.id == accountId }
+
+    fun upsertAccount(account: Account) {
+        accounts = accounts.toMutableList().apply {
+            val index = indexOfFirst { it.id == account.id }
+            if (index < 0)
+                add(account)
+            else
+                set(index, account)
         }
+    }
+
+    fun updateAccountCalendars(accountId: String, calendars: Set<CalendarInfo>) {
+        val account = getAccount(accountId) ?: return
+        upsertAccount(account.copy(calendars = calendars))
+    }
+
+    fun removeAccount(accountId: String) {
+        accounts = accounts.filterNot { it.id == accountId }
+    }
 
     private fun encrypt(text: String) =
         Base64.encodeToString(
@@ -77,9 +89,4 @@ object Storage {
         ).toString(StandardCharsets.UTF_8)
 }
 
-const val CLIENT_ID = "client_id"
-const val CLIENT_SECRET = "client_secret"
-const val ACCESS_TOKEN = "access_token"
-const val REFRESH_TOKEN = "refresh_token"
-const val VALID_TILL = "valid_till"
-const val CALENDARS = "calendars"
+const val ACCOUNTS = "accounts"

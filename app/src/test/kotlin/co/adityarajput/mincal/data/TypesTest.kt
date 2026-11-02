@@ -7,6 +7,7 @@ import org.junit.Test
 class TypesTest {
     private val event = EventInfo(
         "event",
+        "acc-1",
         CalendarInfo("cal-1", "Calendar 1", listOf(Override(20), Override(10)), true),
         "Event",
         Time("2026-06-30"),

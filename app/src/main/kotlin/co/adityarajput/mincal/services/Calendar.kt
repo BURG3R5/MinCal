@@ -5,6 +5,7 @@ package co.adityarajput.mincal.services
 
 import android.net.Uri
 import android.util.Log
+import co.adityarajput.mincal.data.Account
 import co.adityarajput.mincal.data.CalendarInfo
 import co.adityarajput.mincal.data.EventInfo
 import kotlinx.coroutines.Dispatchers
@@ -22,12 +23,12 @@ import java.time.OffsetDateTime
 object Calendar {
     val http = OkHttpClient()
 
-    suspend fun refreshTokens() {
-        withContext(Dispatchers.IO) {
+    suspend fun refreshTokens(account: Account): Account? {
+        return withContext(Dispatchers.IO) {
             try {
-                val credentials = Storage.credentials
+                val credentials = account.credentials
                 if (credentials.validTill > System.currentTimeMillis() + 60_000)
-                    return@withContext
+                    return@withContext account
 
                 val request = http.newCall(
                     Request.Builder().url("https://oauth2.googleapis.com/token")
@@ -48,20 +49,26 @@ object Calendar {
                     val response =
                         Json.decodeFromString<GetTokensResponse>(it.body.string())
 
-                    Storage.credentials = credentials.copy(
-                        accessToken = response.access_token,
-                        refreshToken = credentials.refreshToken,
-                        validTill = response.expires_in * 1000 + System.currentTimeMillis(),
+                    val refreshedAccount = account.copy(
+                        credentials = credentials.copy(
+                            accessToken = response.access_token,
+                            refreshToken = credentials.refreshToken,
+                            validTill = response.expires_in * 1000 + System.currentTimeMillis(),
+                        ),
                     )
+                    Storage.upsertAccount(refreshedAccount)
+                    return@withContext refreshedAccount
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to refresh tokens", e)
+                Log.e(TAG, "Failed to refresh tokens for ${account.id}", e)
             }
+
+            null
         }
     }
 
-    suspend fun getCalendars(): List<CalendarInfo>? {
-        refreshTokens()
+    suspend fun getCalendars(account: Account): List<CalendarInfo>? {
+        val activeAccount = refreshTokens(account) ?: Storage.getAccount(account.id) ?: account
 
         return withContext(Dispatchers.IO) {
             try {
@@ -75,7 +82,7 @@ object Calendar {
                                 .addQueryParameter("minAccessRole", "reader")
                                 .build(),
                         )
-                        .header("Authorization", "Bearer ${Storage.credentials.accessToken}")
+                        .header("Authorization", "Bearer ${activeAccount.credentials.accessToken}")
                         .get().build(),
                 )
 
@@ -89,15 +96,15 @@ object Calendar {
                     return@withContext response.items
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to get calendars", e)
+                Log.e(TAG, "Failed to get calendars for ${account.id}", e)
             }
 
             return@withContext null
         }
     }
 
-    suspend fun getEvents(calendarId: String): List<EventInfo>? {
-        refreshTokens()
+    suspend fun getEvents(account: Account, calendarId: String): List<EventInfo>? {
+        val activeAccount = refreshTokens(account) ?: Storage.getAccount(account.id) ?: account
 
         return withContext(Dispatchers.IO) {
             try {
@@ -120,7 +127,7 @@ object Calendar {
                                 .addQueryParameter("timeMin", OffsetDateTime.now().toString())
                                 .build(),
                         )
-                        .header("Authorization", "Bearer ${Storage.credentials.accessToken}")
+                        .header("Authorization", "Bearer ${activeAccount.credentials.accessToken}")
                         .get().build(),
                 )
 
@@ -134,7 +141,7 @@ object Calendar {
                     return@withContext response.items
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to get events for $calendarId", e)
+                Log.e(TAG, "Failed to get events for ${account.id}:$calendarId", e)
             }
 
             return@withContext null
