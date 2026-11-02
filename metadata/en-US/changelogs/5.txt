@@ -1,0 +1,3 @@
+feat: Support multiple accounts
+
+Users can now get notified about events from multiple Google accounts. Existing credentials will be dropped with this update, so re-authentication is required.
