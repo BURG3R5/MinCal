@@ -22,7 +22,7 @@ fun Context.sendNotification(id: Int, title: String, content: String) {
             id,
             Notification.Builder(this@sendNotification, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle(title).setContentText(content)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.calendar)
                 .setAutoCancel(true).build(),
         )
     }
